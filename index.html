@@ -1,0 +1,521 @@
+<!DOCTYPE html>  <html lang="tr">  
+<head>  
+<meta charset="UTF-8" />  
+<meta name="viewport" content="width=device-width, initial-scale=1" />  
+<title>Dinozor RTX Gelişmiş</title>  
+<style>  
+  /* Genel reset */  
+  * {  
+    margin: 0; padding: 0; box-sizing: border-box;  
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  
+  }  
+  html, body {  
+    width: 100%; height: 100vh;  
+    background: linear-gradient(to bottom, #1e1e1e, #0a0a0a);  
+    overflow: hidden;  
+    color: #eee;  
+    user-select: none;  
+  }  
+  button, select, label {  
+    font-size: 1.2rem; margin: 1rem 0.5rem; padding: 0.7rem 1.2rem;  
+    background: #222; border: 2px solid #444; border-radius: 12px; color: #eee;  
+    cursor: pointer;  
+    transition: all 0.3s ease;  
+  }  
+  button:hover, select:hover, label:hover {  
+    background: #444;  
+    border-color: #08f;  
+    color: #08f;  
+  }  
+  #container {  
+    position: relative;  
+    width: 100vw; height: 100vh;  
+  }  
+  /* Bölümler */  
+  .screen {  
+    position: absolute;  
+    width: 100%; height: 100%;  
+    display: flex; flex-direction: column;  
+    justify-content: center; align-items: center;  
+    background: linear-gradient(to bottom, #222, #111);  
+    transition: opacity 0.5s ease;  
+  }  
+  .hidden {  
+    pointer-events: none;  
+    opacity: 0;  
+    position: fixed !important;  
+    top: -9999px !important;  
+    left: -9999px !important;  
+  }  
+  h1, h2 {  
+    text-shadow: 0 0 12px #08f;  
+    font-weight: 900;  
+    user-select: none;  
+  }  
+  /* Canvas stil */  
+  #gameCanvas {  
+    border-radius: 18px;  
+    box-shadow:  
+      0 0 32px 6px #08f,  
+      inset 0 0 22px 8px #05a;  
+    background: linear-gradient(to top, #5a3e1b, #e8d1a5);  
+    max-width: 100vw;  
+    max-height: 75vh;  
+    display: block;  
+  }  
+  /* HUD */  
+  #hud {  
+    position: absolute;  
+    top: 24px; left: 24px;  
+    font-size: 1.5rem;  
+    color: #f0e130;  
+    text-shadow:  
+      0 0 10px #f0e130,  
+      0 0 20px #f0e130;  
+    font-weight: 700;  
+    user-select: none;  
+  }  
+  /* Butonlar ve ayarlar alanı */  
+  #btnBack {  
+    position: absolute;  
+    top: 24px; right: 24px;  
+    background: #600000;  
+    color: white;  
+    border: none;  
+    border-radius: 10px;  
+    padding: 0.7rem 1.4rem;  
+    font-weight: 700;  
+    box-shadow: 0 0 10px #f00, inset 0 0 15px #c00;  
+    cursor: pointer;  
+    user-select: none;  
+    transition: background-color 0.3s ease;  
+  }  
+  #btnBack:hover {  
+    background-color: #f00;  
+  }  
+  #settings label {  
+    display: flex;  
+    justify-content: space-between;  
+    width: 260px;  
+    font-weight: 600;  
+  }  
+  #settings select, #settings input[type="checkbox"] {  
+    cursor: pointer;  
+  }  
+  /* Dialog penceresi */  
+  #dialogBox {  
+    position: absolute;  
+    top: 50%; left: 50%;  
+    transform: translate(-50%, -50%);  
+    background: #111;  
+    border-radius: 20px;  
+    box-shadow: 0 0 20px #00f;  
+    padding: 2rem 3rem;  
+    text-align: center;  
+    color: #eee;  
+    user-select: none;  
+  }  
+</style>  
+</head>  
+<body>  
+<div id="container">  
+  <!-- Giriş Ekranı -->  
+  <div id="introScreen" class="screen">  
+    <h1>🦖 Dinozor RTX Gelişmiş</h1>  
+    <button id="btnStartStory">Story Modu Başlat</button>  
+    <button id="btnStartInfinity">Sonsuz Mod Başlat</button>  
+    <button id="btnOpenSettings">Ayarlar</button>  
+  </div>    <!-- Ayarlar Ekranı -->    <div id="settingsScreen" class="screen hidden">  
+    <h2>Ayarlar</h2>  
+    <label for="soundToggle">Ses Açık  
+      <input type="checkbox" id="soundToggle" />  
+    </label>  
+    <label for="graphicsQuality">Grafik Kalitesi  
+      <select id="graphicsQuality">  
+        <option value="low">Düşük</option>  
+        <option value="medium" selected>Orta</option>  
+        <option value="high">Yüksek (RTX)</option>  
+      </select>  
+    </label>  
+    <label for="characterQuality">Karakter Kalitesi  
+      <select id="characterQuality">  
+        <option value="simple" selected>Basit</option>  
+        <option value="detailed">Detaylı</option>  
+      </select>  
+    </label>  
+    <label for="shadowQuality">Gölge Kalitesi  
+      <select id="shadowQuality">  
+        <option value="off">Kapalı</option>  
+        <option value="low">Düşük</option>  
+        <option value="high" selected>Yüksek</option>  
+      </select>  
+    </label>  
+    <button id="btnCloseSettings">Ayarları Kapat</button>  
+  </div>    <!-- Oyun Ekranı -->    <div id="gameScreen" class="screen hidden" style="background:#5a3e1b;">  
+    <canvas id="gameCanvas" width="960" height="540" aria-label="Dinozor oyunu"></canvas>  
+    <div id="hud">Skor: <span id="scoreDisplay">0</span></div>  
+    <button id="btnBack">Menüye Dön</button>  
+  </div>  
+</div>  <script>  
+(() => {  
+  // Elementler  
+  const introScreen = document.getElementById('introScreen');  
+  const settingsScreen = document.getElementById('settingsScreen');  
+  const gameScreen = document.getElementById('gameScreen');  
+  const btnStartStory = document.getElementById('btnStartStory');  
+  const btnStartInfinity = document.getElementById('btnStartInfinity');  
+  const btnOpenSettings = document.getElementById('btnOpenSettings');  
+  const btnCloseSettings = document.getElementById('btnCloseSettings');  
+  const btnBack = document.getElementById('btnBack');  
+  const soundToggle = document.getElementById('soundToggle');  
+  const graphicsQuality = document.getElementById('graphicsQuality');  
+  const characterQuality = document.getElementById('characterQuality');  
+  const shadowQuality = document.getElementById('shadowQuality');  
+  const scoreDisplay = document.getElementById('scoreDisplay');  
+  const canvas = document.getElementById('gameCanvas');  
+  const ctx = canvas.getContext('2d');  
+  
+  // Oyun değişkenleri  
+  let mode = null; // story veya infinity  
+  let gameOver = false;  
+  let score = 0;  
+  let lastTime = 0;  
+  let obstacles = [];  
+  let obTimer = 0;  
+  let dayCycle = 0;  
+  let dino = {  
+    x: 80,  
+    y: 0,  
+    w: 48,  
+    h: 48,  
+    vy: 0,  
+    gravity: 0.9,  
+    jumpForce: -16,  
+    isJumping: false,  
+    animFrame: 0  
+  };  
+  
+  // Ayarları localStorage'dan yükle  
+  let config = {  
+    sound: JSON.parse(localStorage.getItem('sound') || 'true'),  
+    graphics: localStorage.getItem('graphics') || 'medium',  
+    character: localStorage.getItem('character') || 'simple',  
+    shadow: localStorage.getItem('shadow') || 'high'  
+  };  
+  
+  // Ayarları UI'ya yansıt  
+  soundToggle.checked = config.sound;  
+  graphicsQuality.value = config.graphics;  
+  characterQuality.value = config.character;  
+  shadowQuality.value = config.shadow;  
+  
+  // Menü <-> Ayarlar  
+  btnOpenSettings.addEventListener('click', () => {  
+    introScreen.classList.add('hidden');  
+    settingsScreen.classList.remove('hidden');  
+  });  
+  btnCloseSettings.addEventListener('click', () => {  
+    // Kaydet  
+    config.sound = soundToggle.checked;  
+    config.graphics = graphicsQuality.value;  
+    config.character = characterQuality.value;  
+    config.shadow = shadowQuality.value;  
+  
+    localStorage.setItem('sound', config.sound);  
+    localStorage.setItem('graphics', config.graphics);  
+    localStorage.setItem('character', config.character);  
+    localStorage.setItem('shadow', config.shadow);  
+  
+    settingsScreen.classList.add('hidden');  
+    introScreen.classList.remove('hidden');  
+  });  
+  
+  // Menü <-> Oyun  
+  btnStartStory.addEventListener('click', () => {  
+    mode = 'story';  
+    startGame();  
+  });  
+  btnStartInfinity.addEventListener('click', () => {  
+    mode = 'infinity';  
+    startGame();  
+  });  
+  btnBack.addEventListener('click', () => {  
+    endGame();  
+  });  
+  
+  // Grafik kalitesi anlık değiştiğinde kaydet ve uygula  
+  graphicsQuality.addEventListener('change', () => {  
+    config.graphics = graphicsQuality.value;  
+    localStorage.setItem('graphics', config.graphics);  
+  });  
+  characterQuality.addEventListener('change', () => {  
+    config.character = characterQuality.value;  
+    localStorage.setItem('character', config.character);  
+  });  
+  shadowQuality.addEventListener('change', () => {  
+    config.shadow = shadowQuality.value;  
+    localStorage.setItem('shadow', config.shadow);  
+  });  
+  soundToggle.addEventListener('change', () => {  
+    config.sound = soundToggle.checked;  
+    localStorage.setItem('sound', config.sound);  
+  });  
+  
+  // Kontroller: Space veya dokunma  
+  document.addEventListener('keydown', e => {  
+    if (e.code === 'Space') jump();  
+  });  
+  document.addEventListener('touchstart', e => {  
+    jump();  
+  });  
+  
+  // Zıplama fonksiyonu  
+  function jump() {  
+    const onGround = dino.y >= canvas.height - dino.h - 50;  
+    if (onGround && !gameOver) {  
+      dino.vy = dino.jumpForce;  
+      dino.isJumping = true;  
+      if (config.sound) playJumpSound();  
+    }  
+  }  
+  
+  // Ses oynatma (şimdilik boş)  
+  function playJumpSound() {}  
+  
+  // Engel oluşturma  
+  function spawnObstacle() {  
+    // Engelin boyutu grafik kalitesine göre  
+    let size = 24;  
+    if (config.graphics === 'medium') size = 36;  
+    else if (config.graphics === 'high') size = 48;  
+  
+    obstacles.push({  
+      x: canvas.width + 20,  
+      y: canvas.height - 50 - size,  
+      size,  
+      speed: 0.5 + Math.random() * 0.3  
+    });  
+  }  
+  
+  // Arkaplan (Gündüz/gece döngüsü)  
+  function drawBackground() {  
+    dayCycle = (dayCycle + 0.0005) % 1;  
+  
+    let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);  
+    if (dayCycle < 0.5) {  
+      const val = 1 - dayCycle * 2;  
+      gradient.addColorStop(0, `rgba(255, 200, 100, ${val})`);  
+      gradient.addColorStop(1, `rgba(40, 40, 100, ${val})`);  
+    } else {  
+      const val = (dayCycle - 0.5) * 2;  
+      gradient.addColorStop(0, `rgba(255, 150, 50, ${val})`);  
+      gradient.addColorStop(1, `rgba(255, 240, 180, ${val})`);  
+    }  
+    ctx.fillStyle = gradient;  
+    ctx.fillRect(0, 0, canvas.width, canvas.height);  
+  
+    // Güneş veya ay çizimi, grafik kalitesine göre glow eklenir  
+    ctx.beginPath();  
+    ctx.shadowColor = config.graphics === 'high' ? "rgba(255, 255, 150, 0.8)" : "transparent";  
+    ctx.shadowBlur = config.graphics === 'high' ? 20 : 0;  
+    ctx.fillStyle = dayCycle < 0.5 ? "yellow" : "lightgray";  
+    ctx.arc(100, 100, config.graphics === 'high' ? 50 : 40, 0, Math.PI * 2);  
+    ctx.fill();  
+    ctx.shadowBlur = 0;  
+  }  
+  
+  // Zemin ve gölgeler  
+  function drawGround() {  
+    let grd = ctx.createLinearGradient(0, canvas.height - 60, 0, canvas.height);  
+    grd.addColorStop(0, "#8B5E3C");  
+    grd.addColorStop(1, "#442A15");  
+    ctx.fillStyle = grd;  
+    ctx.fillRect(0, canvas.height - 60, canvas.width, 60);  
+  
+    if (config.shadow === 'high') {  
+      obstacles.forEach(o => {  
+        ctx.fillStyle = "rgba(0,0,0,0.3)";  
+        ctx.filter = 'blur(4px)';  
+        ctx.beginPath();  
+        ctx.ellipse(o.x + o.size / 2, canvas.height - 20, o.size * 0.9, 10, 0, 0, Math.PI * 2);  
+        ctx.fill();  
+        ctx.filter = 'none';  
+      });  
+      ctx.fillStyle = "rgba(0,0,0,0.4)";  
+      ctx.filter = 'blur(5px)';  
+      ctx.beginPath();  
+      ctx.ellipse(dino.x + dino.w / 2, canvas.height - 15, dino.w * 0.9, 12, 0, 0, Math.PI * 2);  
+      ctx.fill();  
+      ctx.filter = 'none';  
+    } else if (config.shadow === 'low') {  
+      obstacles.forEach(o => {  
+        ctx.fillStyle = "rgba(0,0,0,0.15)";  
+        ctx.fillRect(o.x, canvas.height - 20, o.size, 6);  
+      });  
+      ctx.fillStyle = "rgba(0,0,0,0.15)";  
+      ctx.fillRect(dino.x, canvas.height - 15, dino.w, 6);  
+    }  
+  }  
+  
+  // Engel çizimi  
+  function drawObstacles() {  
+    obstacles.forEach(o => {  
+      // Grafik kalitesine göre büyüklük  
+      const size = o.size;  
+  
+      ctx.font = `${size}px serif`;  
+      ctx.textBaseline = 'bottom';  
+  
+      if (config.graphics === 'high') {  
+        ctx.fillStyle = "#064b00";  
+        ctx.shadowColor = "#00ff00";  
+        ctx.shadowBlur = 15;  
+        ctx.fillText("🌵", o.x, o.y + size);  
+        ctx.shadowBlur = 0;  
+      } else if (config.graphics === 'medium') {  
+        ctx.fillStyle = "#064b00";  
+        ctx.fillText("🌵", o.x, o.y + size);  
+      } else {  
+        // Düşük kalitede daha küçük ve basit emoji  
+        ctx.font = `24px serif`;  
+        ctx.fillStyle = "#0a3400";  
+        ctx.fillText("🌵", o.x, canvas.height - 30);  
+      }  
+    });  
+  }  
+  
+  // Dinozor çizimi  
+  function drawDino() {  
+    ctx.textBaseline = 'bottom';  
+    ctx.font = `${dino.h}px serif`;  
+  
+    if (config.character === 'detailed') {  
+      // Animasyonlu detaylı dinozor: zıplama veya koşma animasyonu  
+      let emoji = "🦖";  
+      if (dino.isJumping) {  
+        emoji = "🦖"; // Zıplarken farklı emoji  
+      } else {  
+        // Koşma animasyonu için basit frame döngüsü  
+        dino.animFrame = (dino.animFrame + 1) % 20;  
+        if (dino.animFrame < 10) emoji = "🦖";  
+        else emoji = "🦖";  
+      }  
+      if (config.graphics === 'high') {  
+        ctx.shadowColor = "#ffcc00";  
+        ctx.shadowBlur = 20;  
+      } else {  
+        ctx.shadowColor = "transparent";  
+        ctx.shadowBlur = 0;  
+      }  
+      ctx.fillStyle = "#ffaa00";  
+      ctx.fillText(emoji, dino.x, dino.y + dino.h);  
+      ctx.shadowBlur = 0;  
+    } else {  
+// Basit hali  
+      ctx.shadowColor = "transparent";  
+      ctx.shadowBlur = 0;  
+      ctx.fillStyle = "#ffaa00";  
+      ctx.fillText("🦖", dino.x, dino.y + dino.h);  
+    }  
+  }  
+  
+  // Fizik ve engel hareketi  
+  function update(dt) {  
+    dino.vy += dino.gravity;  
+    dino.y += dino.vy;  
+  
+    const groundLevel = canvas.height - dino.h - 50;  
+    if (dino.y > groundLevel) {  
+      dino.y = groundLevel;  
+      dino.vy = 0;  
+      dino.isJumping = false;  
+    }  
+  
+    obTimer += dt;  
+    // Engeller arası süreyi skora göre azaltarak zorluk arttır  
+    if (obTimer > 1400 - score * 0.2) {  
+      spawnObstacle();  
+      obTimer = 0;  
+    }  
+  
+    obstacles = obstacles.filter(o => {  
+      o.x -= o.speed * dt;  
+  
+      // Çarpışma kontrolü (basit kutu çarpışması)  
+      if (  
+        dino.x < o.x + o.size &&  
+        dino.x + dino.w > o.x &&  
+        dino.y + dino.h > o.y  
+      ) {  
+        gameOver = true;  
+        return false;  
+      }  
+      // Görünmeyen engelleri temizle  
+      return o.x + o.size > 0;  
+    });  
+  
+    // Skoru arttır  
+    score += dt * 0.06;  
+  }  
+  
+  // Ana döngü  
+  function gameLoop(timestamp) {  
+    if (!lastTime) lastTime = timestamp;  
+    let dt = timestamp - lastTime;  
+    lastTime = timestamp;  
+  
+    if (gameOver) {  
+      alert(`💥 Oyun bitti! Skorunuz: ${Math.floor(score)}`);  
+      endGame();  
+      return;  
+    }  
+  
+    drawBackground();  
+    drawGround();  
+    update(dt);  
+    drawObstacles();  
+    drawDino();  
+  
+    scoreDisplay.textContent = Math.floor(score);  
+  
+    requestAnimationFrame(gameLoop);  
+  }  
+  
+  // Oyun başlatma  
+  function startGame() {  
+    introScreen.classList.add('hidden');  
+    settingsScreen.classList.add('hidden');  
+    gameScreen.classList.remove('hidden');  
+  
+    obstacles = [];  
+    score = 0;  
+    gameOver = false;  
+    obTimer = 0;  
+    dayCycle = 0;  
+    dino.y = canvas.height - dino.h - 50;  
+    dino.vy = 0;  
+    dino.isJumping = false;  
+    lastTime = 0;  
+  
+    requestAnimationFrame(gameLoop);  
+  }  
+  
+  // Oyunu bitir  
+  function endGame() {  
+    gameOver = true;  
+    gameScreen.classList.add('hidden');  
+    introScreen.classList.remove('hidden');  
+  }  
+  
+  // Başlangıçta ayarları localStorage'dan uygula (ayrıca UI ile de sync)  
+  function loadSettings() {  
+    soundToggle.checked = config.sound;  
+    graphicsQuality.value = config.graphics;  
+    characterQuality.value = config.character;  
+    shadowQuality.value = config.shadow;  
+  }  
+  
+  loadSettings();  
+})();  
+</script>  </body>  
+</html>
